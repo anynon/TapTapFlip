@@ -6,8 +6,6 @@
 //  Copyright © 2018 CP Digital Darkroom <tweaks@cpdigitaldarkroom.support>. All rights reserved.
 //
 
-#import <version.h>
-
 @interface CAMFlipButton : UIButton
 @end
 
