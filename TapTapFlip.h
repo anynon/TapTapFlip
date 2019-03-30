@@ -8,7 +8,6 @@
 
 #import <version.h>
 
-#define iPad (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
 #define CURRENT_INTERFACE_ORIENTATION iPad ? [[UIApplication sharedApplication] statusBarOrientation] : [[UIApplication sharedApplication] activeInterfaceOrientation]
 
 @interface CAMFlipButton : UIButton
