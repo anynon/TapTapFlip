@@ -8,18 +8,14 @@
 
 #import "TapTapFlip.h"
 
-static BOOL kEnabled;
 
 UITapGestureRecognizer *tapGesture;
 UIView *previewContainerView;
 int cameraMode;
 
-%group MostModernOS
 %hook CAMViewfinderViewController
 - (void)loadView {
     %orig;
-    if(!kEnabled)
-        return;
 
     CAMPreviewViewController *previewController = self._previewViewController;
     tapGesture = [[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(flipCamera:)] autorelease];
@@ -46,10 +42,6 @@ int cameraMode;
     */
 
     if([self flipSupportedForMode:currentMode]) {
-        if(iPad) {
-            CAMFlipButton *flipButton = [[self valueForKey:@"_topBar"] valueForKey:@"_bottomBar"];
-            [flipButton sendActionsForControlEvents:UIControlEventTouchUpInside];
-        } else {
             CAMFlipButton *flipButton = self._bottomBar.flipButton;
             [flipButton sendActionsForControlEvents:UIControlEventTouchUpInside];
         }
@@ -65,12 +57,7 @@ int cameraMode;
         case 5:
             return YES;
         case 6: {
-            // iOS 10 didn't support the flip for portrait mode AFAIR, iOS 11 does
-            // If this is not right for certain 10.x lmk
-            if(IS_IOS_OR_NEWER(iOS_11_0)) {
-                return YES;
-            }
-            return NO;
+           return YES;
             break;
         }
         default:
@@ -78,128 +65,3 @@ int cameraMode;
     }
 }
 %end
-%end
-
-%group ModernOS
-%hook CAMViewfinderView
-
-- (void)layoutSubviews {
-    %orig;
-    if(!kEnabled)
-        return;
-
-    self.userInteractionEnabled = YES;
-
-    CAMPreviewContainerView *previewContainerView = [self valueForKey:@"_previewContainerView"];
-    tapGesture = [[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(flipCamera:)] autorelease];
-    tapGesture.numberOfTapsRequired = 2;
-    tapGesture.numberOfTouchesRequired = 1;
-    [previewContainerView addGestureRecognizer:tapGesture];
-
-}
-
-%new
-- (void)flipCamera:(UITapGestureRecognizer *)sender {
-
-    CAMBottomBar *bBar = MSHookIvar<CAMBottomBar *>(self, "_bottomBar");
-    CAMModeDial *dial = MSHookIvar<CAMModeDial *>(bBar, "_modeDial");
-    NSInteger *currentMode = MSHookIvar<NSInteger *>(dial, "_selectedMode");
-    if(kEnabled && ((int)(size_t)currentMode == 0 || (int)(size_t)currentMode == 1 || (int)(size_t)currentMode == 4 || (int)(size_t)currentMode == 6))
-    {
-        if(iPad)
-        {
-            CAMFlipButton *flipButton = [[self valueForKey:@"_topBar"] valueForKey:@"_bottomBar"];
-            [flipButton sendActionsForControlEvents:UIControlEventTouchUpInside];
-        }
-        else
-        {
-            CAMFlipButton *flipButton = [[self valueForKey:@"_topBar"] valueForKey:@"_flipButton"];
-            [flipButton sendActionsForControlEvents:UIControlEventTouchUpInside];
-        }
-    }
-}
-%end
-
-%hook CMKCameraView
-
-- (void)layoutSubviews{
-    %orig;
-    if(!kEnabled)
-        return;
-
-    CAMPreviewContainerView *previewContainerView = [self valueForKey:@"_previewContainerView"];
-    UITapGestureRecognizer* tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(flipCamera:)];
-    tapGesture.numberOfTapsRequired = 2;
-    tapGesture.numberOfTouchesRequired = 1;
-    [previewContainerView addGestureRecognizer:tapGesture];
-    [tapGesture release];
-
-}
-
-%new
-- (void)flipCamera:(UITapGestureRecognizer *)sender {
-    if(kEnabled) {
-        if(iPad) {
-            CAMFlipButton *flipButton = [[self valueForKey:@"_topBar"] valueForKey:@"_bottomBar"];
-            [flipButton sendActionsForControlEvents:UIControlEventTouchUpInside];
-        } else {
-            CAMFlipButton *flipButton = [[self valueForKey:@"_topBar"] valueForKey:@"_flipButton"];
-            [flipButton sendActionsForControlEvents:UIControlEventTouchUpInside];
-        }
-    }
-}
-%end
-%end
-
-%group LegacyOS
-%hook CAM_HOOK_CLASS
-
-- (void)layoutSubviews{
-    %orig;
-    if(!kEnabled)
-        return;
-
-    previewContainerView = MSHookIvar<UIView *>(self, "_previewContainerView");
-    tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(flipCamera:)];
-    tapGesture.numberOfTapsRequired = 2;
-    tapGesture.numberOfTouchesRequired = 1;
-    [previewContainerView addGestureRecognizer:tapGesture];
-        [tapGesture release];
-
-}
-
-%new
-- (void)flipCamera:(UITapGestureRecognizer *)sender {
-    if(kEnabled)
-    {
-        [[self _flipButton] sendActionsForControlEvents:UIControlEventTouchUpInside];
-    }
-}
-%end
-%end
-
-static void loadPrefs() {
-    CFPreferencesAppSynchronize(CFSTR("com.cpdigitaldarkroom.taptapflip"));
-    kEnabled = !CFPreferencesCopyAppValue(CFSTR("isEnabled"), CFSTR("com.cpdigitaldarkroom.taptapflip")) ? YES : [(id)CFPreferencesCopyAppValue(CFSTR("isEnabled"), CFSTR("com.cpdigitaldarkroom.taptapflip")) boolValue];
-}
-
-%ctor{
-
-    CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)loadPrefs, CFSTR("com.cpdigitaldarkroom.taptapflip/settingschanged"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
-
-    loadPrefs();
-
-    if(IS_IOS_BETWEEN(iOS_7_0, iOS_8_4)) {
-        Class camClass = nil;
-        if(IS_IOS_BETWEEN(iOS_7_0, iOS_7_1)) {
-            camClass = objc_getClass("PLCameraView");
-        } else if(IS_IOS_BETWEEN(iOS_8_0, iOS_8_4)) {
-            camClass = objc_getClass("CAMCameraView");
-        }
-        %init(LegacyOS, CAM_HOOK_CLASS=camClass);
-    } else if(IS_IOS_OR_NEWER(iOS_9_0) && IS_IOS_OLDERTHAN(iOS_10_0)) {
-         %init(ModernOS);
-    } else if(IS_IOS_OR_NEWER(iOS_10_0)) {
-         %init(MostModernOS);
-    }
-}
