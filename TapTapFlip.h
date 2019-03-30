@@ -8,8 +8,6 @@
 
 #import <version.h>
 
-#define CURRENT_INTERFACE_ORIENTATION iPad ? [[UIApplication sharedApplication] statusBarOrientation] : [[UIApplication sharedApplication] activeInterfaceOrientation]
-
 @interface CAMFlipButton : UIButton
 @end
 
@@ -51,7 +49,6 @@
 @interface CAMViewfinderViewController : UIViewController
 @property (nonatomic, readonly) CAMPreviewViewController *_previewViewController;
 @property (nonatomic, readonly) CAMBottomBar *_bottomBar;
-@property (nonatomic, readonly) CAMTopBar *_topBar;
 
 - (BOOL)flipSupportedForMode:(int)currentMode; // Added by TTF
 
