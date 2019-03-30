@@ -31,14 +31,14 @@ int cameraMode;
     CAMModeDial *dial = bBar.modeDial;
     int currentMode = dial.selectedMode;
 
-    /* Camera Mode Dial Modes - Disable flipping on non-supported modes - iOS 10
+    /* Camera Mode Dial Modes - Disable flipping on non-supported modes
     * 0 = Photo
     * 1 = Video
     * 2 = Slo-Mo / Flip not supported stock
     * 3 = Pano / Flip not supported stock
     * 4 = Square
     * 5 = Time-Lapse
-    * 6 = Portrait / Flip not supported stock -- iOS 11 does support flip
+    * 6 = Portrait /iOS 11 does support flip
     */
 
     if([self flipSupportedForMode:currentMode]) {
